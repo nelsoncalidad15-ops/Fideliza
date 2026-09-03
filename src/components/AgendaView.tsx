@@ -1,0 +1,164 @@
+import React, { useMemo, useState } from 'react';
+import { Cake, CalendarDays, MessageSquare, Phone, Search, X } from 'lucide-react';
+import { Advisor, Customer } from '../types';
+import { buildTelLink, calculateAgeInMonths } from '../utils/communication';
+
+interface AgendaViewProps {
+  customers: Customer[];
+  advisors: Advisor[];
+  selectedAdvisorId: string;
+  setSelectedAdvisorId: (id: string) => void;
+  onSelectCustomer: (c: Customer) => void;
+  onOpenManagementModal: (c: Customer) => void;
+  onOpenWhatsAppModal: (c: Customer) => void;
+  initialTab?: AgendaTab;
+  canFilterAdvisors?: boolean;
+}
+
+type AgendaTab = 'hoy' | 'pendientes' | 'proximos' | 'cumpleanos' | 'renovacion' | 'postventa' | 'todos';
+
+const statusClass = (state: string) => {
+  if (state === 'Pendiente' || state === 'No respondió') return 'status status--pending';
+  if (state === 'Interesado' || state === 'Potencial renovación') return 'status status--positive';
+  if (state === 'Renovado') return 'status status--renewed';
+  return 'status';
+};
+
+export const AgendaView: React.FC<AgendaViewProps> = ({
+  customers,
+  advisors,
+  selectedAdvisorId,
+  setSelectedAdvisorId,
+  onSelectCustomer,
+  onOpenManagementModal,
+  onOpenWhatsAppModal,
+  initialTab = 'hoy',
+  canFilterAdvisors = true,
+}) => {
+  const [activeTab, setActiveTab] = useState<AgendaTab>(initialTab);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('todos');
+  const selectedAdvisor = advisors.find(a => a.id === selectedAdvisorId);
+
+  const advisorCustomers = useMemo(() => customers.filter(customer => {
+    if (selectedAdvisorId === 'todos' || !selectedAdvisor) return true;
+    const advisorName = selectedAdvisor.name.toLowerCase();
+    const assignedName = customer.advisor.toLowerCase();
+    return assignedName.includes(advisorName) || advisorName.includes(assignedName);
+  }), [customers, selectedAdvisorId, selectedAdvisor]);
+
+  const belongsTo = (customer: Customer, tab: AgendaTab) => {
+    const isBirthday = Boolean(customer.birthDate) || customer.contactReason === 'Cumpleaños' || customer.tags.some(tag => tag.toLowerCase().includes('cumpleaños'));
+    const scheduledToday = customer.nextScheduledContact === new Date().toISOString().slice(0, 10) || customer.nextScheduledContact?.toLowerCase().includes('hoy');
+    if (tab === 'hoy') return scheduledToday || customer.priority === 'Alta';
+    if (tab === 'pendientes') return customer.state === 'Pendiente' || customer.state === 'No respondió';
+    if (tab === 'proximos') return Boolean(customer.nextScheduledContact) && !customer.nextScheduledContact?.toLowerCase().includes('hoy');
+    if (tab === 'cumpleanos') return isBirthday;
+    if (tab === 'renovacion') return customer.state === 'Potencial renovación' || customer.contactReason.includes('Renovación');
+    if (tab === 'postventa') return customer.category === 'Postventa' || customer.category === 'Ambos';
+    return true;
+  };
+
+  const counts = useMemo(() => ({
+    hoy: advisorCustomers.filter(c => belongsTo(c, 'hoy')).length,
+    pendientes: advisorCustomers.filter(c => belongsTo(c, 'pendientes')).length,
+    proximos: advisorCustomers.filter(c => belongsTo(c, 'proximos')).length,
+    cumpleanos: advisorCustomers.filter(c => belongsTo(c, 'cumpleanos')).length,
+    renovacion: advisorCustomers.filter(c => belongsTo(c, 'renovacion')).length,
+    postventa: advisorCustomers.filter(c => belongsTo(c, 'postventa')).length,
+    todos: advisorCustomers.length,
+  }), [advisorCustomers]);
+
+  const filteredCustomers = useMemo(() => advisorCustomers.filter(customer => {
+    if (!belongsTo(customer, activeTab)) return false;
+    if (statusFilter === 'pendiente' && !['Pendiente', 'No respondió'].includes(customer.state)) return false;
+    if (statusFilter === 'gestionado' && !['Contactado', 'Interesado', 'Renovado'].includes(customer.state)) return false;
+    if (!search.trim()) return true;
+    const value = search.toLowerCase();
+    return [customer.fullName, customer.docNumber, customer.licensePlate, customer.vehicleModel, customer.phone]
+      .some(field => field?.toLowerCase().includes(value));
+  }), [advisorCustomers, activeTab, statusFilter, search]);
+
+  const tabs: Array<{ id: AgendaTab; label: string; count: number }> = [
+    { id: 'hoy', label: 'Hoy', count: counts.hoy },
+    { id: 'pendientes', label: 'Pendientes', count: counts.pendientes },
+    { id: 'proximos', label: 'Próximos', count: counts.proximos },
+    { id: 'renovacion', label: 'Renovación', count: counts.renovacion },
+    { id: 'postventa', label: 'Postventa', count: counts.postventa },
+    { id: 'cumpleanos', label: 'Cumpleaños', count: counts.cumpleanos },
+    { id: 'todos', label: 'Todos', count: counts.todos },
+  ];
+
+  return (
+    <div className="staff-view agenda-view">
+      <header className="screen-header">
+        <div className="screen-header__title">
+          <span className="screen-header__icon"><CalendarDays /></span>
+          <div>
+            <h1>Agenda diaria</h1>
+            <p>{new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          </div>
+        </div>
+        <div className="screen-toolbar">
+          <label className="compact-search">
+            <Search />
+            <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar cliente, auto o teléfono" />
+            {search && <button onClick={() => setSearch('')} aria-label="Limpiar búsqueda"><X /></button>}
+          </label>
+          {canFilterAdvisors && <select value={selectedAdvisorId} onChange={event => setSelectedAdvisorId(event.target.value)} aria-label="Filtrar por asesor">
+            <option value="todos">Todos los asesores</option>
+            {advisors.map(advisor => <option key={advisor.id} value={advisor.id}>{advisor.name.replace('Direccion - ', '')}</option>)}
+          </select>}
+        </div>
+      </header>
+
+      <section className="agenda-filters" aria-label="Filtros de agenda">
+        <div className="agenda-tabs">
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? 'is-active' : ''}>
+              <span>{tab.label}</span><strong>{tab.count}</strong>
+            </button>
+          ))}
+        </div>
+        <select value={statusFilter} onChange={event => setStatusFilter(event.target.value)} aria-label="Filtrar por estado">
+          <option value="todos">Todos los estados</option>
+          <option value="pendiente">Pendientes</option>
+          <option value="gestionado">Gestionados</option>
+        </select>
+      </section>
+
+      <section className="agenda-list">
+        <div className="agenda-list__head">
+          <span>Cliente</span><span>Vehículo</span><span>Motivo</span><span>Estado</span><span>Acciones</span>
+        </div>
+        {filteredCustomers.length === 0 ? (
+          <div className="empty-state"><CalendarDays /><strong>Sin contactos en esta vista</strong><span>Probá con otro filtro o búsqueda.</span></div>
+        ) : filteredCustomers.map(customer => {
+          const isBirthday = belongsTo(customer, 'cumpleanos');
+          return (
+            <article key={customer.id} className="agenda-row">
+              <button className="agenda-row__client" onClick={() => onSelectCustomer(customer)}>
+                <strong>{customer.fullName}</strong>
+                <span>DNI {customer.docNumber}</span>
+              </button>
+              <div className="agenda-row__vehicle">
+                <strong>{customer.vehicleModel}</strong>
+                <span>{customer.city} · {calculateAgeInMonths(customer.deliveryDate || customer.registrationDate)} meses</span>
+              </div>
+              <div className="agenda-row__reason">
+                <strong>{isBirthday && <Cake />} {isBirthday ? customer.birthDate || 'Cumpleaños' : customer.contactReason}</strong>
+                <span>{customer.lastContactDate ? `Último contacto: ${customer.lastContactDate}` : 'Sin contacto previo'}</span>
+              </div>
+              <div><span className={statusClass(customer.state)}>{customer.state}</span></div>
+              <div className="agenda-row__actions">
+                <button onClick={() => onOpenWhatsAppModal(customer)} aria-label="Enviar WhatsApp" title="WhatsApp"><MessageSquare /></button>
+                <a href={buildTelLink(customer.phone)} aria-label={`Llamar a ${customer.fullName}`} title={customer.phone}><Phone /></a>
+                <button className="primary" onClick={() => onOpenManagementModal(customer)}>Registrar</button>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+    </div>
+  );
+};
