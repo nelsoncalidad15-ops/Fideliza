@@ -5,12 +5,14 @@ const SHEETS_URL_KEY = 'autosol_sheets_url';
 const SHEETS_TOKEN_KEY = 'autosol_sheets_token';
 export const DEFAULT_API_TOKEN = 'AUTOSOL_SECURE_TOKEN_2026';
 
+const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzmqs50sOhnEK_2Njvb9tlen6CwJQSAvD1oMjzUMbDrcokYhKfNIYybFxY2yDex3x7L/exec';
+
 export const getSheetsEndpoint = (): string => {
   try {
     const saved = localStorage.getItem(SHEETS_URL_KEY);
     if (saved && saved.trim()) return saved.trim();
   } catch {}
-  return (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
+  return (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || DEFAULT_APPS_SCRIPT_URL;
 };
 
 export const saveSheetsEndpoint = (url: string) => {
