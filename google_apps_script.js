@@ -51,12 +51,17 @@ function doGet(e) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetClientes = ss.getSheetByName(HOJA_CLIENTES);
+    let sheetClientes = ss.getSheetByName(HOJA_CLIENTES);
+
+    // Si no se encuentra una pestaña llamada 'Clientes', buscar 'Hoja 1', 'Sheet 1' o la primera pestaña
+    if (!sheetClientes) {
+      sheetClientes = ss.getSheetByName('Hoja 1') || ss.getSheetByName('Sheet 1') || ss.getSheets()[0];
+    }
 
     if (!sheetClientes) {
       return jsonResponse({
         status: 'error',
-        message: 'No se encontró la hoja Clientes. Ejecutá crearEstructuraInicial()'
+        message: 'No se encontró la hoja Clientes ni datos en la hoja. Ejecutá la función crearEstructuraInicial() en Apps Script.'
       });
     }
 
