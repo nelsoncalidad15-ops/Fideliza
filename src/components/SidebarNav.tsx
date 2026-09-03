@@ -5,11 +5,11 @@ import { AuthenticatedUser } from './LoginView';
 
 export const ROLE_PERMISSIONS: Record<UserRole, { label: string; allowedViews: string[] }> = {
   admin: { label: 'Administrador', allowedViews: ['dashboard', 'clientes', 'agenda', 'historial', 'campanas', 'postventa', 'asignacion', 'supervision', 'usuarios', 'inicio'] },
-  jefe_ventas: { label: 'Jefe de Ventas', allowedViews: ['dashboard', 'clientes', 'agenda', 'historial', 'asignacion', 'supervision', 'inicio'] },
+  jefe_ventas: { label: 'Jefe de Ventas', allowedViews: ['dashboard', 'clientes', 'agenda', 'historial', 'asignacion', 'supervision', 'usuarios', 'inicio'] },
   asesor: { label: 'Operario de Ventas', allowedViews: ['agenda', 'historial', 'inicio'] },
-  jefe_postventa: { label: 'Jefe de Postventa', allowedViews: ['postventa', 'clientes', 'agenda', 'historial', 'campanas', 'inicio'] },
+  jefe_postventa: { label: 'Jefe de Postventa', allowedViews: ['postventa', 'clientes', 'agenda', 'historial', 'campanas', 'usuarios', 'inicio'] },
   postventa: { label: 'Operario de Postventa', allowedViews: ['postventa', 'agenda', 'historial', 'clientes', 'inicio'] },
-  calidad: { label: 'Calidad', allowedViews: ['postventa', 'clientes', 'agenda', 'supervision', 'inicio'] },
+  calidad: { label: 'Calidad', allowedViews: ['postventa', 'clientes', 'agenda', 'supervision', 'usuarios', 'inicio'] },
   gerencia: { label: 'Gerencia', allowedViews: ['dashboard', 'clientes', 'agenda', 'historial', 'campanas', 'postventa', 'asignacion', 'supervision', 'usuarios', 'inicio'] },
 };
 
@@ -61,7 +61,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         { id: 'clientes', label: 'Clientes', icon: Users },
         ...((isAdmin || isSalesChief) ? [{ id: 'asignacion', label: 'Asignar clientes', icon: UserRoundCheck }] : []),
         ...((isAdmin || isSalesChief) ? [{ id: 'supervision', label: 'Indicadores', icon: BarChart3 }] : []),
-        ...(isAdmin ? [{ id: 'usuarios', label: 'Usuarios', icon: UserCog }] : []),
+        ...((isAdmin || isSalesChief) ? [{ id: 'usuarios', label: 'Usuarios', icon: UserCog }] : []),
       ];
 
   const postSalesItems = [
@@ -69,7 +69,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     { id: 'agenda', label: 'Agenda', icon: Calendar, badge: pendingTasksCount },
     { id: 'clientes', label: 'Clientes', icon: Users },
     ...((isAdmin || isPostSalesChief) ? [{ id: 'campanas', label: 'Campañas', icon: Megaphone }] : []),
-    ...(isAdmin ? [{ id: 'usuarios', label: 'Usuarios', icon: UserCog }] : []),
+    ...((isAdmin || isPostSalesChief) ? [{ id: 'usuarios', label: 'Usuarios', icon: UserCog }] : []),
   ];
 
   const items = activeModule === 'postventa' ? postSalesItems : salesItems;
@@ -100,7 +100,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           </div>
         )}
 
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
           {items.map(item => {
             const Icon = item.icon;
             const active = currentView === item.id;

@@ -518,7 +518,7 @@ export default function App() {
           />
         )}
 
-        {currentView === 'usuarios' && userRole === 'admin' && (
+        {currentView === 'usuarios' && (
           <UsersAdminView
             accounts={userAccounts}
             onAccountsChange={setUserAccounts}
