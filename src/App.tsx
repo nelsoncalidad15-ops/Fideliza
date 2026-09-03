@@ -13,7 +13,6 @@ import { SalesManagerDashboard } from './components/SalesManagerDashboard';
 import { ClientDetailModal } from './components/ClientDetailModal';
 import { RegisterManagementModal } from './components/RegisterManagementModal';
 import { WhatsAppPreviewModal } from './components/WhatsAppPreviewModal';
-import { AddCustomerModal } from './components/AddCustomerModal';
 import { TechnicalGuideModal } from './components/TechnicalGuideModal';
 import { MinimalistLandingView } from './components/MinimalistLandingView';
 import { AuthenticatedUser } from './components/LoginView';
@@ -23,6 +22,8 @@ import { CallsHistoryView } from './components/CallsHistoryView';
 import { TelephonyStatsView } from './components/TelephonyStatsView';
 import { UsersAdminView } from './components/UsersAdminView';
 import { AdvisorHistoryView } from './components/AdvisorHistoryView';
+import { GoogleSheetsModal } from './components/GoogleSheetsModal';
+import { fetchCustomersFromSheet, syncManagementToSheet } from './services/googleSheetsService';
 import { getUserAccounts } from './data/userAccounts';
 import { Lock, ShieldAlert } from 'lucide-react';
 
@@ -63,9 +64,18 @@ export default function App() {
   const [selectedCustomerForDetail, setSelectedCustomerForDetail] = useState<Customer | null>(null);
   const [selectedCustomerForManagement, setSelectedCustomerForManagement] = useState<Customer | null>(null);
   const [selectedCustomerForWhatsApp, setSelectedCustomerForWhatsApp] = useState<Customer | null>(null);
-  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState<boolean>(false);
+  const [isSheetsModalOpen, setIsSheetsModalOpen] = useState<boolean>(false);
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Sincronización automática con Google Sheets
+  React.useEffect(() => {
+    fetchCustomersFromSheet(currentUser).then(res => {
+      if (res.success && res.customers && res.customers.length > 0) {
+        setCustomers(res.customers);
+      }
+    });
+  }, [currentUser]);
 
   // Counters for Header badges
   const pendingTasksCount = useMemo(() => {
@@ -171,6 +181,21 @@ export default function App() {
     setSelectedCustomerForManagement(null);
     setToast('Gestión guardada');
     window.setTimeout(() => setToast(null), 2600);
+
+    // Sincronizar en vivo con Google Sheets en segundo plano
+    const targetCust = customers.find(c => c.id === customerId);
+    syncManagementToSheet(customerId, {
+      date: data.date,
+      channel: data.channel,
+      result: data.result,
+      notes: data.notes,
+      detectedInterest: data.detectedInterest,
+      nextFollowUpDate: data.nextFollowUpDate,
+      advisorName: data.advisorName,
+      customerName: targetCust?.fullName,
+      vehicleModel: targetCust?.vehicleModel,
+      licensePlate: targetCust?.licensePlate,
+    });
   };
 
   // Handler: Mark as Renewed (converts into completed renewal)
@@ -259,12 +284,6 @@ export default function App() {
     });
   };
 
-  // Handler: Add New Customer
-  const handleAddCustomer = (newCustomer: Customer) => {
-    setCustomers(prev => [newCustomer, ...prev]);
-    setIsAddCustomerOpen(false);
-  };
-
   // Handler: Send Selected IDs to Today's Agenda
   const handleSendToAgenda = (customerIds: string[]) => {
     setCustomers(prev => prev.map(c => {
@@ -312,6 +331,7 @@ export default function App() {
             setCurrentUser(null);
             setCurrentView('inicio');
           }}
+          onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
         />
       )}
 
@@ -427,8 +447,8 @@ export default function App() {
             onSelectCustomer={setSelectedCustomerForDetail}
             onOpenManagementModal={setSelectedCustomerForManagement}
             onOpenWhatsAppModal={setSelectedCustomerForWhatsApp}
-            onAddNewCustomer={() => setIsAddCustomerOpen(true)}
             initialSearch={searchQuery}
+            canExport={userRole === 'admin' || userRole === 'gerencia'}
           />
         )}
 
@@ -581,19 +601,18 @@ export default function App() {
         />
       )}
 
-      {isAddCustomerOpen && (
-        <AddCustomerModal
-          advisors={advisors}
-          onClose={() => setIsAddCustomerOpen(false)}
-          onAddCustomer={handleAddCustomer}
-        />
-      )}
-
       {isGuideOpen && (
         <TechnicalGuideModal
           onClose={() => setIsGuideOpen(false)}
         />
       )}
+
+      <GoogleSheetsModal
+        isOpen={isSheetsModalOpen}
+        onClose={() => setIsSheetsModalOpen(false)}
+        onCustomersLoaded={(loaded) => setCustomers(loaded)}
+        currentUser={currentUser}
+      />
 
       {/* Floating Login Modal (Pestaña flotante de login) */}
       <ClientLoginModal

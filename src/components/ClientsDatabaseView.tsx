@@ -26,8 +26,8 @@ interface ClientsDatabaseViewProps {
   onSelectCustomer: (customer: Customer) => void;
   onOpenManagementModal: (customer: Customer) => void;
   onOpenWhatsAppModal: (customer: Customer) => void;
-  onAddNewCustomer: () => void;
   initialSearch?: string;
+  canExport?: boolean;
 }
 
 export const ClientsDatabaseView: React.FC<ClientsDatabaseViewProps> = ({
@@ -36,8 +36,8 @@ export const ClientsDatabaseView: React.FC<ClientsDatabaseViewProps> = ({
   onSelectCustomer,
   onOpenManagementModal,
   onOpenWhatsAppModal,
-  onAddNewCustomer,
   initialSearch = '',
+  canExport = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [branchFilter, setBranchFilter] = useState('Todas');
@@ -182,22 +182,16 @@ export const ClientsDatabaseView: React.FC<ClientsDatabaseViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition-colors"
-            title="Descargar archivo CSV para Excel o Google Sheets"
-          >
-            <Download className="w-4 h-4 text-slate-600" />
-            <span>Exportar CSV</span>
-          </button>
-
-          <button
-            onClick={onAddNewCustomer}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Cargar Cliente</span>
-          </button>
+          {canExport && (
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs border border-slate-300 transition-colors"
+              title="Descargar archivo CSV para Excel o Google Sheets"
+            >
+              <Download className="w-4 h-4 text-slate-600" />
+              <span>Exportar CSV</span>
+            </button>
+          )}
         </div>
       </div>
 

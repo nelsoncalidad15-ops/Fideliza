@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Calendar, History, Home, LogOut, Menu, Megaphone, UserCog, UserRoundCheck, Users, Wrench, X } from 'lucide-react';
+import { BarChart3, Calendar, FileSpreadsheet, History, Home, LogOut, Menu, Megaphone, UserCog, UserRoundCheck, Users, Wrench, X } from 'lucide-react';
 import { Advisor, UserRole } from '../types';
 import { AuthenticatedUser } from './LoginView';
 
@@ -32,6 +32,7 @@ interface SidebarNavProps {
   onLogout: () => void;
   activeModule: 'ventas' | 'postventa';
   setActiveModule: (module: 'ventas' | 'postventa') => void;
+  onOpenSheetsModal?: () => void;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -110,6 +111,18 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             </button>;
           })}
         </nav>
+        {(isAdmin || isSalesChief) && onOpenSheetsModal && (
+          <div className="px-3 pb-2">
+            <button
+              onClick={onOpenSheetsModal}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[11px] font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 hover:bg-emerald-900/40 transition"
+              title="Configurar y sincronizar Google Sheets"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0" />
+              <span className="flex-1 truncate">Google Sheets</span>
+            </button>
+          </div>
+        )}
         <div className="border-t border-slate-800 p-3">
           <div className="flex items-center gap-2 px-2 py-2">
             {currentUser?.avatar ? <img src={currentUser.avatar} alt="" className="h-7 w-7 rounded-full object-cover" /> : <span className="grid h-7 w-7 place-items-center rounded-full bg-blue-600 text-[10px] font-black">{currentUser?.name.slice(0, 1)}</span>}
