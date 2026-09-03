@@ -10,7 +10,7 @@ import {
   AlertCircle,
   Database
 } from 'lucide-react';
-import { getSheetsEndpoint, saveSheetsEndpoint, fetchCustomersFromSheet } from '../services/googleSheetsService';
+import { getSheetsEndpoint, saveSheetsEndpoint, getSheetsToken, saveSheetsToken, fetchCustomersFromSheet } from '../services/googleSheetsService';
 import { Customer } from '../types';
 
 interface GoogleSheetsModalProps {
