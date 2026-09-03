@@ -51,17 +51,13 @@ function doGet(e) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheetClientes = ss.getSheetByName(HOJA_CLIENTES);
-
-    // Si no se encuentra una pestaña llamada 'Clientes', buscar 'Hoja 1', 'Sheet 1' o la primera pestaña
-    if (!sheetClientes) {
-      sheetClientes = ss.getSheetByName('Hoja 1') || ss.getSheetByName('Sheet 1') || ss.getSheets()[0];
-    }
+    // Toma la hoja 'Clientes' o la primera hoja del documento (donde están tus datos)
+    const sheetClientes = ss.getSheetByName(HOJA_CLIENTES) || ss.getSheets()[0];
 
     if (!sheetClientes) {
       return jsonResponse({
         status: 'error',
-        message: 'No se encontró la hoja Clientes ni datos en la hoja. Ejecutá la función crearEstructuraInicial() en Apps Script.'
+        message: 'No se encontró ninguna hoja con datos en el documento.'
       });
     }
 
@@ -73,24 +69,24 @@ function doGet(e) {
     const headers = data[0].map(h => String(h).trim().toLowerCase());
     const rows = data.slice(1);
 
-    // Mapeo dinámico de columnas
+    // Mapeo dinámico exacto para la planilla de Autosol
     const colIdx = {
-      id: findCol(headers, ['id', 'código', 'codigo']),
-      fullName: findCol(headers, ['nombre', 'cliente', 'nombre completo', 'razon social']),
-      docNumber: findCol(headers, ['dni', 'cuit', 'cuil', 'documento']),
-      phone: findCol(headers, ['telefono', 'celular', 'tel', 'whatsapp']),
-      email: findCol(headers, ['email', 'correo', 'mail']),
-      address: findCol(headers, ['direccion', 'domicilio']),
+      id: findCol(headers, ['id', 'código', 'codigo', 'chasis', 'dominio']),
+      fullName: findCol(headers, ['cliente', 'nombre', 'razon social', 'razón social', 'titular', 'nombre completo']),
+      docNumber: findCol(headers, ['cuil/t', 'cuit', 'cuil', 'dni', 'documento']),
+      phone: findCol(headers, ['teléfono', 'telefono', 'celular', 'tel', 'whatsapp']),
+      email: findCol(headers, ['email', 'correo', 'mail', 'teléfono del contacto', 'telefono del contacto']),
+      address: findCol(headers, ['direccion', 'domicilio', 'calle']),
       city: findCol(headers, ['ciudad', 'localidad']),
-      branch: findCol(headers, ['sucursal']),
-      vehicleModel: findCol(headers, ['modelo', 'vehiculo', 'unidad']),
-      modelFamily: findCol(headers, ['familia', 'gama']),
+      branch: findCol(headers, ['suc.', 'sucursal']),
+      vehicleModel: findCol(headers, ['modelo', 'vehiculo', 'unidad', 'versión', 'version']),
+      modelFamily: findCol(headers, ['familia', 'gama', 'modelo']),
       chassisNumber: findCol(headers, ['chasis', 'vin', 'cuadro']),
-      licensePlate: findCol(headers, ['patente', 'dominio']),
-      deliveryDate: findCol(headers, ['fecha entrega', 'remito', 'entrega']),
-      registrationDate: findCol(headers, ['fecha patentamiento', 'patentamiento']),
-      birthDate: findCol(headers, ['fecha nacimiento', 'nacimiento', 'cumpleaños']),
-      advisor: findCol(headers, ['asesor', 'vendedor', 'responsable']),
+      licensePlate: findCol(headers, ['dominio', 'patente']),
+      deliveryDate: findCol(headers, ['fecha entrega', 'remito', 'entrega', 'fecha remito']),
+      registrationDate: findCol(headers, ['fecha patentamiento', 'fecha patentam', 'patentamiento']),
+      birthDate: findCol(headers, ['fec.nac. cli.', 'fec.nac', 'fecha nacimiento', 'nacimiento', 'cumpleaños']),
+      advisor: findCol(headers, ['detalle de ventas', 'detalle de venta', 'asesor', 'vendedor', 'responsable']),
       state: findCol(headers, ['estado', 'status']),
       contactReason: findCol(headers, ['motivo', 'motivo contacto']),
       priority: findCol(headers, ['prioridad']),
@@ -108,36 +104,63 @@ function doGet(e) {
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      if (!row[colIdx.fullName] && !row[colIdx.licensePlate]) continue; // Fila vacía
+      const licensePlateVal = String(row[colIdx.licensePlate] || '').trim();
+      const fullNameVal = String(row[colIdx.fullName] || '').trim();
+      const docVal = String(row[colIdx.docNumber] || '').trim();
+
+      if (!fullNameVal && !licensePlateVal && !docVal) continue; // Fila vacía
 
       const advisorAssigned = String(row[colIdx.advisor] || '').trim();
 
-      // =========================================================================
-      // REGLA DE SEGURIDAD ANTI-ROBO:
-      // Si el rol es 'asesor', SOLO se le envían clientes asignados a él.
-      // Jamás se expone en la respuesta la cartera de otros asesores.
-      // =========================================================================
+      // Regla de seguridad anti-robo para asesores
       if (userRole === 'asesor' && userAdvisor) {
         const normAssigned = normalizarTexto(advisorAssigned);
         const normUser = normalizarTexto(userAdvisor);
         if (!normAssigned.includes(normUser) && !normUser.includes(normAssigned)) {
-          continue; // No es su cliente, se excluye del JSON
+          continue; // Oculta clientes de otros asesores
         }
       }
 
+      // Detección inteligente de email en cualquier columna de la fila que contenga '@'
+      let emailVal = String(row[colIdx.email] || '').trim();
+      if (!emailVal.includes('@')) {
+        for (let j = 0; j < row.length; j++) {
+          const cellStr = String(row[j] || '').trim();
+          if (cellStr.includes('@') && cellStr.includes('.')) {
+            emailVal = cellStr;
+            break;
+          }
+        }
+      }
+
+      // Detección inteligente de teléfono
+      let phoneVal = String(row[colIdx.phone] || '').trim();
+      if (phoneVal.includes('@')) phoneVal = '';
+      if (!phoneVal) {
+        for (let j = 0; j < row.length; j++) {
+          const cellStr = String(row[j] || '').trim();
+          if (/[\d-]{7,}/.test(cellStr) && !cellStr.includes('@') && j !== colIdx.docNumber && j !== colIdx.chassisNumber && j !== colIdx.licensePlate) {
+            phoneVal = cellStr;
+            break;
+          }
+        }
+      }
+
+      const vehicleModelVal = String(row[colIdx.vehicleModel] || 'Volkswagen 0km');
+
       result.push({
         id: String(row[colIdx.id] || ('cli_' + (i + 1))),
-        fullName: String(row[colIdx.fullName] || ''),
-        docNumber: String(row[colIdx.docNumber] || ''),
-        phone: String(row[colIdx.phone] || ''),
-        email: String(row[colIdx.email] || ''),
+        fullName: fullNameVal || 'Cliente Autosol',
+        docNumber: docVal,
+        phone: phoneVal,
+        email: emailVal,
         address: String(row[colIdx.address] || ''),
         city: String(row[colIdx.city] || 'San Salvador de Jujuy'),
         branch: String(row[colIdx.branch] || 'San Salvador de Jujuy'),
-        vehicleModel: String(row[colIdx.vehicleModel] || 'Volkswagen'),
-        modelFamily: String(row[colIdx.modelFamily] || inferirFamilia(String(row[colIdx.vehicleModel] || ''))),
+        vehicleModel: vehicleModelVal,
+        modelFamily: inferirFamilia(vehicleModelVal),
         chassisNumber: String(row[colIdx.chassisNumber] || ''),
-        licensePlate: String(row[colIdx.licensePlate] || ''),
+        licensePlate: licensePlateVal,
         deliveryDate: formatearFecha(row[colIdx.deliveryDate]),
         registrationDate: formatearFecha(row[colIdx.registrationDate]),
         birthDate: formatearFecha(row[colIdx.birthDate]),
