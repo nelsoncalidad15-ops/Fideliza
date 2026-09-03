@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ==============================================================================
  * AUTOSOL VOLKSWAGEN - GOOGLE APPS SCRIPT BACKEND (FIDELIZA)
  * ==============================================================================
@@ -24,13 +24,32 @@
 const HOJA_CLIENTES = 'Clientes';
 const HOJA_GESTIONES = 'Gestiones';
 
+// ==============================================================================
+// SEGURIDAD: TOKEN PRIVADO DE AUTORIZACIÓN
+// Nadie puede consultar datos sin esta clave secreta.
+// Podés cambiar este valor por la contraseña que prefieras.
+// ==============================================================================
+const API_SECRET_TOKEN = 'AUTOSOL_SECURE_TOKEN_2026';
+
 /**
  * Endpoint GET: Devuelve clientes en formato JSON
- * SEGURIDAD ANTI-ROBO: Si la petición proviene de un Asesor, solo devuelve su cartera asignada.
+ * SEGURIDAD ANTI-ROBO:
+ * 1. Exige el token secreto API_SECRET_TOKEN.
+ * 2. Si la petición proviene de un Asesor, solo devuelve su cartera asignada.
  */
 function doGet(e) {
   try {
     const params = e ? e.parameter : {};
+
+    // Verificación de seguridad por Token
+    const token = (params.token || '').trim();
+    if (token !== API_SECRET_TOKEN) {
+      return jsonResponse({
+        status: 'error',
+        message: 'Acceso denegado: Token de seguridad no válido o ausente.'
+      });
+    }
+
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheetClientes = ss.getSheetByName(HOJA_CLIENTES);
 
@@ -149,6 +168,15 @@ function doGet(e) {
 function doPost(e) {
   try {
     const postData = e && e.postData && e.postData.contents ? JSON.parse(e.postData.contents) : {};
+
+    // Verificación de seguridad por Token
+    if ((postData.token || '').trim() !== API_SECRET_TOKEN) {
+      return jsonResponse({
+        status: 'error',
+        message: 'Acceso denegado: Token de seguridad no válido.'
+      });
+    }
+
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // 1. Guardar en pestaña 'Gestiones' (Auditoría e historial)

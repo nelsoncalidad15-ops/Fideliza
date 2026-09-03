@@ -2,6 +2,8 @@ import { Customer, InteractionLog } from '../types';
 import { initialCustomers } from '../data/mockData';
 
 const SHEETS_URL_KEY = 'autosol_sheets_url';
+const SHEETS_TOKEN_KEY = 'autosol_sheets_token';
+export const DEFAULT_API_TOKEN = 'AUTOSOL_SECURE_TOKEN_2026';
 
 export const getSheetsEndpoint = (): string => {
   try {
@@ -14,6 +16,20 @@ export const getSheetsEndpoint = (): string => {
 export const saveSheetsEndpoint = (url: string) => {
   try {
     localStorage.setItem(SHEETS_URL_KEY, url.trim());
+  } catch {}
+};
+
+export const getSheetsToken = (): string => {
+  try {
+    const saved = localStorage.getItem(SHEETS_TOKEN_KEY);
+    if (saved && saved.trim()) return saved.trim();
+  } catch {}
+  return DEFAULT_API_TOKEN;
+};
+
+export const saveSheetsToken = (token: string) => {
+  try {
+    localStorage.setItem(SHEETS_TOKEN_KEY, token.trim());
   } catch {}
 };
 
@@ -47,6 +63,7 @@ export async function fetchCustomersFromSheet(
   try {
     const params = new URLSearchParams({
       action: 'get_customers',
+      token: getSheetsToken(),
       role: user?.role || 'asesor',
       advisor: user?.name || '',
       email: user?.email || '',
@@ -154,6 +171,7 @@ export async function syncManagementToSheet(
       },
       body: JSON.stringify({
         action: 'log_interaction',
+        token: getSheetsToken(),
         customerId,
         ...data,
       }),

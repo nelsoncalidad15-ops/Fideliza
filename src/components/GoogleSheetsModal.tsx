@@ -27,6 +27,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   currentUser,
 }) => {
   const [url, setUrl] = useState('');
+  const [token, setToken] = useState(getSheetsToken());
   const [isTesting, setIsTesting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [copiedScript, setCopiedScript] = useState(false);
@@ -34,6 +35,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setUrl(getSheetsEndpoint());
+      setToken(getSheetsToken());
       setFeedback(null);
     }
   }, [isOpen]);
@@ -47,6 +49,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     setFeedback(null);
 
     saveSheetsEndpoint(cleanUrl);
+    saveSheetsToken(token.trim());
 
     if (!cleanUrl) {
       setIsTesting(false);
@@ -147,6 +150,23 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
               />
               <p className="mt-1 text-[11px] text-slate-400">
                 Podés pegar aquí la URL de implementación que te entrega Google Sheets.
+              </p>
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-800 mb-1.5 flex items-center justify-between">
+                <span>Clave / Token Secreto de Seguridad</span>
+                <span className="text-[10px] text-blue-600 font-semibold">Protección Anti-Robo</span>
+              </label>
+              <input
+                type="text"
+                value={token}
+                onChange={e => setToken(e.target.value)}
+                placeholder="AUTOSOL_SECURE_TOKEN_2026"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 text-xs font-mono outline-none focus:border-blue-600 focus:bg-white"
+              />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Debe coincidir con la constante <code>API_SECRET_TOKEN</code> configurada en tu Apps Script.
               </p>
             </div>
 
