@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { BarChart3, Calendar, Home, LogOut, Menu, Megaphone, UserCog, UserRoundCheck, Users, Wrench, X } from 'lucide-react';
+import { BarChart3, Calendar, History, Home, LogOut, Menu, Megaphone, UserCog, UserRoundCheck, Users, Wrench, X } from 'lucide-react';
 import { Advisor, UserRole } from '../types';
 import { AuthenticatedUser } from './LoginView';
 
 export const ROLE_PERMISSIONS: Record<UserRole, { label: string; allowedViews: string[] }> = {
-  admin: { label: 'Administrador', allowedViews: ['dashboard', 'clientes', 'agenda', 'campanas', 'postventa', 'asignacion', 'supervision', 'usuarios', 'inicio'] },
-  jefe_ventas: { label: 'Jefe de Ventas', allowedViews: ['dashboard', 'clientes', 'agenda', 'asignacion', 'supervision', 'inicio'] },
-  asesor: { label: 'Operario de Ventas', allowedViews: ['agenda', 'clientes', 'inicio'] },
-  jefe_postventa: { label: 'Jefe de Postventa', allowedViews: ['postventa', 'clientes', 'agenda', 'campanas', 'inicio'] },
-  postventa: { label: 'Operario de Postventa', allowedViews: ['postventa', 'agenda', 'clientes', 'inicio'] },
+  admin: { label: 'Administrador', allowedViews: ['dashboard', 'clientes', 'agenda', 'historial', 'campanas', 'postventa', 'asignacion', 'supervision', 'usuarios', 'inicio'] },
+  jefe_ventas: { label: 'Jefe de Ventas', allowedViews: ['dashboard', 'clientes', 'agenda', 'historial', 'asignacion', 'supervision', 'inicio'] },
+  asesor: { label: 'Operario de Ventas', allowedViews: ['agenda', 'historial', 'inicio'] },
+  jefe_postventa: { label: 'Jefe de Postventa', allowedViews: ['postventa', 'clientes', 'agenda', 'historial', 'campanas', 'inicio'] },
+  postventa: { label: 'Operario de Postventa', allowedViews: ['postventa', 'agenda', 'historial', 'clientes', 'inicio'] },
   calidad: { label: 'Calidad', allowedViews: ['postventa', 'clientes', 'agenda', 'supervision', 'inicio'] },
-  gerencia: { label: 'Gerencia', allowedViews: ['dashboard', 'clientes', 'agenda', 'campanas', 'postventa', 'asignacion', 'supervision', 'usuarios', 'inicio'] },
+  gerencia: { label: 'Gerencia', allowedViews: ['dashboard', 'clientes', 'agenda', 'historial', 'campanas', 'postventa', 'asignacion', 'supervision', 'usuarios', 'inicio'] },
 };
 
 interface SidebarNavProps {
@@ -52,12 +52,13 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   const salesItems = userRole === 'asesor'
     ? [
         { id: 'agenda', label: 'Agenda', icon: Calendar, badge: pendingTasksCount },
-        { id: 'clientes', label: 'Clientes', icon: Users },
+        { id: 'historial', label: 'Historial', icon: History },
       ]
     : [
         { id: 'dashboard', label: 'Inicio', icon: Home },
-        { id: 'clientes', label: 'Clientes', icon: Users },
         { id: 'agenda', label: 'Agenda', icon: Calendar, badge: pendingTasksCount },
+        { id: 'historial', label: 'Historial', icon: History },
+        { id: 'clientes', label: 'Clientes', icon: Users },
         ...((isAdmin || isSalesChief) ? [{ id: 'asignacion', label: 'Asignar clientes', icon: UserRoundCheck }] : []),
         ...((isAdmin || isSalesChief) ? [{ id: 'supervision', label: 'Indicadores', icon: BarChart3 }] : []),
         ...(isAdmin ? [{ id: 'usuarios', label: 'Usuarios', icon: UserCog }] : []),

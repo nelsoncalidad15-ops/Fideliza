@@ -22,6 +22,7 @@ import { CustomerPortalView } from './components/CustomerPortalView';
 import { CallsHistoryView } from './components/CallsHistoryView';
 import { TelephonyStatsView } from './components/TelephonyStatsView';
 import { UsersAdminView } from './components/UsersAdminView';
+import { AdvisorHistoryView } from './components/AdvisorHistoryView';
 import { getUserAccounts } from './data/userAccounts';
 import { Lock, ShieldAlert } from 'lucide-react';
 
@@ -401,6 +402,20 @@ export default function App() {
             onOpenManagementModal={setSelectedCustomerForManagement}
             onOpenWhatsAppModal={setSelectedCustomerForWhatsApp}
             activeModule={activeModule}
+            canFilterAdvisors={userRole !== 'asesor' && userRole !== 'postventa'}
+          />
+        )}
+
+        {/* View: Management History (Historial de gestiones del asesor) */}
+        {currentView === 'historial' && (
+          <AdvisorHistoryView
+            customers={customers}
+            advisors={advisors}
+            currentUser={currentUser}
+            selectedAdvisorId={selectedAdvisorId}
+            onSelectCustomer={setSelectedCustomerForDetail}
+            onOpenManagementModal={setSelectedCustomerForManagement}
+            onOpenWhatsAppModal={setSelectedCustomerForWhatsApp}
           />
         )}
 
