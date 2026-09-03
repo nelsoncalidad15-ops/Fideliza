@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Calendar, FileSpreadsheet, History, Home, LogOut, Menu, Megaphone, UserCog, UserRoundCheck, Users, Wrench, X } from 'lucide-react';
+import { BarChart3, Calendar, History, Home, LogOut, Menu, Megaphone, UserCog, UserRoundCheck, Users, Wrench, X } from 'lucide-react';
 import { Advisor, UserRole } from '../types';
 import { AuthenticatedUser } from './LoginView';
 
@@ -32,8 +32,6 @@ interface SidebarNavProps {
   onLogout: () => void;
   activeModule: 'ventas' | 'postventa';
   setActiveModule: (module: 'ventas' | 'postventa') => void;
-  onOpenSheetsModal?: () => void;
-  customersCount?: number;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
@@ -45,8 +43,6 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   onLogout,
   activeModule,
   setActiveModule,
-  onOpenSheetsModal,
-  customersCount,
 }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = userRole === 'admin' || userRole === 'gerencia';
@@ -114,32 +110,6 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             </button>;
           })}
         </nav>
-        {/* Widget indicador de sincronización en vivo con Google Sheets */}
-        <div className="px-3 pb-2">
-          <div 
-            onClick={isAdmin || isSalesChief ? onOpenSheetsModal : undefined}
-            className={`flex items-center justify-between rounded-xl px-3 py-2 text-left transition ${
-              (isAdmin || isSalesChief) && onOpenSheetsModal ? 'cursor-pointer hover:bg-slate-800' : ''
-            } bg-slate-900/90 border border-emerald-500/30`}
-            title="Base conectada con Google Sheets en vivo"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[11px] font-bold text-emerald-400 truncate">Sheet Sincronizado</span>
-                <span className="text-[9px] text-slate-400 truncate">
-                  {customersCount ? `${customersCount.toLocaleString('es-AR')} clientes en vivo` : 'Conectado'}
-                </span>
-              </div>
-            </div>
-            {(isAdmin || isSalesChief) && onOpenSheetsModal && (
-              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400 shrink-0 opacity-70 hover:opacity-100" />
-            )}
-          </div>
-        </div>
         <div className="border-t border-slate-800 p-3">
           <div className="flex items-center gap-2 px-2 py-2">
             {currentUser?.avatar ? <img src={currentUser.avatar} alt="" className="h-7 w-7 rounded-full object-cover" /> : <span className="grid h-7 w-7 place-items-center rounded-full bg-blue-600 text-[10px] font-black">{currentUser?.name.slice(0, 1)}</span>}

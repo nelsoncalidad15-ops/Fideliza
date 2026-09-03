@@ -147,16 +147,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         <div className="screen-header__title">
           <span className="screen-header__icon"><CalendarDays /></span>
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1>Agenda diaria</h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-bold">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                Sincronizado
-              </span>
-            </div>
+            <h1>Agenda diaria</h1>
             <p>{new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           </div>
         </div>

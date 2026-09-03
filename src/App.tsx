@@ -22,7 +22,6 @@ import { CallsHistoryView } from './components/CallsHistoryView';
 import { TelephonyStatsView } from './components/TelephonyStatsView';
 import { UsersAdminView } from './components/UsersAdminView';
 import { AdvisorHistoryView } from './components/AdvisorHistoryView';
-import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { fetchCustomersFromSheet, syncManagementToSheet } from './services/googleSheetsService';
 import { getUserAccounts } from './data/userAccounts';
 import { Lock, ShieldAlert } from 'lucide-react';
@@ -64,7 +63,6 @@ export default function App() {
   const [selectedCustomerForDetail, setSelectedCustomerForDetail] = useState<Customer | null>(null);
   const [selectedCustomerForManagement, setSelectedCustomerForManagement] = useState<Customer | null>(null);
   const [selectedCustomerForWhatsApp, setSelectedCustomerForWhatsApp] = useState<Customer | null>(null);
-  const [isSheetsModalOpen, setIsSheetsModalOpen] = useState<boolean>(false);
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -338,8 +336,6 @@ export default function App() {
             setCurrentUser(null);
             setCurrentView('inicio');
           }}
-          onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
-          customersCount={customers.length}
         />
       )}
 
@@ -614,13 +610,6 @@ export default function App() {
           onClose={() => setIsGuideOpen(false)}
         />
       )}
-
-      <GoogleSheetsModal
-        isOpen={isSheetsModalOpen}
-        onClose={() => setIsSheetsModalOpen(false)}
-        onCustomersLoaded={(loaded) => setCustomers(loaded)}
-        currentUser={currentUser}
-      />
 
       {/* Floating Login Modal (Pestaña flotante de login) */}
       <ClientLoginModal
