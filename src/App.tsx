@@ -400,6 +400,7 @@ export default function App() {
             onSelectCustomer={setSelectedCustomerForDetail}
             onOpenManagementModal={setSelectedCustomerForManagement}
             onOpenWhatsAppModal={setSelectedCustomerForWhatsApp}
+            activeModule={activeModule}
           />
         )}
 
@@ -440,6 +441,7 @@ export default function App() {
             onOpenManagementModal={setSelectedCustomerForManagement}
             onOpenWhatsAppModal={setSelectedCustomerForWhatsApp}
             initialTab="cumpleanos"
+            activeModule={activeModule}
           />
         )}
 

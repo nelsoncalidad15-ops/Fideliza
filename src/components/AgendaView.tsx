@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Cake, CalendarDays, MessageSquare, Phone, Search, X } from 'lucide-react';
 import { Advisor, Customer } from '../types';
 import { buildTelLink, calculateAgeInMonths } from '../utils/communication';
@@ -13,6 +13,7 @@ interface AgendaViewProps {
   onOpenWhatsAppModal: (c: Customer) => void;
   initialTab?: AgendaTab;
   canFilterAdvisors?: boolean;
+  activeModule?: 'ventas' | 'postventa';
 }
 
 type AgendaTab = 'hoy' | 'pendientes' | 'proximos' | 'cumpleanos' | 'renovacion' | 'postventa' | 'todos';
@@ -34,18 +35,37 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   onOpenWhatsAppModal,
   initialTab = 'hoy',
   canFilterAdvisors = true,
+  activeModule = 'ventas',
 }) => {
   const [activeTab, setActiveTab] = useState<AgendaTab>(initialTab);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const selectedAdvisor = advisors.find(a => a.id === selectedAdvisorId);
 
+  useEffect(() => {
+    if (activeModule === 'ventas' && activeTab === 'postventa') {
+      setActiveTab('hoy');
+    }
+  }, [activeModule, activeTab]);
+
+  const visibleAdvisors = useMemo(() => {
+    if (activeModule === 'ventas') {
+      return advisors.filter(a => a.role !== 'Asesor de Servicio Postventa');
+    }
+    if (activeModule === 'postventa') {
+      return advisors.filter(a => a.role === 'Asesor de Servicio Postventa' || a.role === 'Gerencia' || a.role === 'Jefe de Ventas');
+    }
+    return advisors;
+  }, [advisors, activeModule]);
+
   const advisorCustomers = useMemo(() => customers.filter(customer => {
+    if (activeModule === 'ventas' && customer.category === 'Postventa') return false;
+    if (activeModule === 'postventa' && customer.category === 'Ventas') return false;
     if (selectedAdvisorId === 'todos' || !selectedAdvisor) return true;
     const advisorName = selectedAdvisor.name.toLowerCase();
     const assignedName = customer.advisor.toLowerCase();
     return assignedName.includes(advisorName) || advisorName.includes(assignedName);
-  }), [customers, selectedAdvisorId, selectedAdvisor]);
+  }), [customers, selectedAdvisorId, selectedAdvisor, activeModule]);
 
   const belongsTo = (customer: Customer, tab: AgendaTab) => {
     const isBirthday = Boolean(customer.birthDate) || customer.contactReason === 'Cumpleaños' || customer.tags.some(tag => tag.toLowerCase().includes('cumpleaños'));
@@ -79,15 +99,25 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
       .some(field => field?.toLowerCase().includes(value));
   }), [advisorCustomers, activeTab, statusFilter, search]);
 
-  const tabs: Array<{ id: AgendaTab; label: string; count: number }> = [
-    { id: 'hoy', label: 'Hoy', count: counts.hoy },
-    { id: 'pendientes', label: 'Pendientes', count: counts.pendientes },
-    { id: 'proximos', label: 'Próximos', count: counts.proximos },
-    { id: 'renovacion', label: 'Renovación', count: counts.renovacion },
-    { id: 'postventa', label: 'Postventa', count: counts.postventa },
-    { id: 'cumpleanos', label: 'Cumpleaños', count: counts.cumpleanos },
-    { id: 'todos', label: 'Todos', count: counts.todos },
-  ];
+  const tabs: Array<{ id: AgendaTab; label: string; count: number }> = useMemo(() => {
+    if (activeModule === 'postventa') {
+      return [
+        { id: 'hoy', label: 'Hoy', count: counts.hoy },
+        { id: 'pendientes', label: 'Pendientes', count: counts.pendientes },
+        { id: 'proximos', label: 'Próximos', count: counts.proximos },
+        { id: 'postventa', label: 'Postventa', count: counts.postventa },
+        { id: 'todos', label: 'Todos', count: counts.todos },
+      ];
+    }
+    return [
+      { id: 'hoy', label: 'Hoy', count: counts.hoy },
+      { id: 'pendientes', label: 'Pendientes', count: counts.pendientes },
+      { id: 'proximos', label: 'Próximos', count: counts.proximos },
+      { id: 'renovacion', label: 'Renovación', count: counts.renovacion },
+      { id: 'cumpleanos', label: 'Cumpleaños', count: counts.cumpleanos },
+      { id: 'todos', label: 'Todos', count: counts.todos },
+    ];
+  }, [activeModule, counts]);
 
   return (
     <div className="staff-view agenda-view">
@@ -107,7 +137,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
           </label>
           {canFilterAdvisors && <select value={selectedAdvisorId} onChange={event => setSelectedAdvisorId(event.target.value)} aria-label="Filtrar por asesor">
             <option value="todos">Todos los asesores</option>
-            {advisors.map(advisor => <option key={advisor.id} value={advisor.id}>{advisor.name.replace('Direccion - ', '')}</option>)}
+            {visibleAdvisors.map(advisor => <option key={advisor.id} value={advisor.id}>{advisor.name.replace('Direccion - ', '')}</option>)}
           </select>}
         </div>
       </header>
