@@ -44,6 +44,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
   onLogout,
   activeModule,
   setActiveModule,
+  onOpenSheetsModal,
 }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = userRole === 'admin' || userRole === 'gerencia';
