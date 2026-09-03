@@ -68,13 +68,20 @@ export default function App() {
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Sincronización automática con Google Sheets
+  // Sincronización automática con Google Sheets en vivo
   React.useEffect(() => {
-    fetchCustomersFromSheet(currentUser).then(res => {
-      if (res.success && res.customers && res.customers.length > 0) {
-        setCustomers(res.customers);
-      }
-    });
+    const doSync = () => {
+      fetchCustomersFromSheet(currentUser).then(res => {
+        if (res.success && res.customers && res.customers.length > 0) {
+          setCustomers(res.customers);
+        }
+      });
+    };
+
+    doSync();
+    // Auto-actualización silenciosa cada 60 segundos
+    const timer = setInterval(doSync, 60000);
+    return () => clearInterval(timer);
   }, [currentUser]);
 
   // Counters for Header badges
@@ -332,6 +339,7 @@ export default function App() {
             setCurrentView('inicio');
           }}
           onOpenSheetsModal={() => setIsSheetsModalOpen(true)}
+          customersCount={customers.length}
         />
       )}
 

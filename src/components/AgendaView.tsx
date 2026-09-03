@@ -67,16 +67,38 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     return assignedName.includes(advisorName) || advisorName.includes(assignedName);
   }), [customers, selectedAdvisorId, selectedAdvisor, activeModule]);
 
+  const isCustomerBirthdayThisMonth = (customer: Customer): boolean => {
+    if (customer.contactReason === 'Cumpleaños' || customer.tags?.some(t => t.toLowerCase().includes('cumpleaños'))) {
+      return true;
+    }
+    if (!customer.birthDate) return false;
+    const parts = customer.birthDate.split(/[-/]/);
+    if (parts.length >= 2) {
+      const month = parseInt(parts[1], 10);
+      const currentMonth = new Date().getMonth() + 1;
+      return month === currentMonth;
+    }
+    return false;
+  };
+
   const belongsTo = (customer: Customer, tab: AgendaTab) => {
-    const isBirthday = Boolean(customer.birthDate) || customer.contactReason === 'Cumpleaños' || customer.tags.some(tag => tag.toLowerCase().includes('cumpleaños'));
-    const scheduledToday = customer.nextScheduledContact === new Date().toISOString().slice(0, 10) || customer.nextScheduledContact?.toLowerCase().includes('hoy');
-    if (tab === 'hoy') return scheduledToday || customer.priority === 'Alta';
-    if (tab === 'pendientes') return customer.state === 'Pendiente' || customer.state === 'No respondió';
-    if (tab === 'proximos') return Boolean(customer.nextScheduledContact) && !customer.nextScheduledContact?.toLowerCase().includes('hoy');
+    const isBirthday = isCustomerBirthdayThisMonth(customer);
+    const scheduledToday = customer.nextScheduledContact === new Date().toISOString().slice(0, 10) || 
+      customer.nextScheduledContact?.toLowerCase().includes('hoy');
+    
+    // Es de renovación si su estado o motivo indican ventana de cambio de unidad
+    const isRenovation = customer.state === 'Potencial renovación' || 
+      customer.state === 'Renovado' || 
+      customer.contactReason?.toLowerCase().includes('renovación') || 
+      customer.contactReason?.toLowerCase().includes('renovacion');
+
+    if (tab === 'hoy') return scheduledToday;
     if (tab === 'cumpleanos') return isBirthday;
-    if (tab === 'renovacion') return customer.state === 'Potencial renovación' || customer.contactReason.includes('Renovación');
+    if (tab === 'proximos') return Boolean(customer.nextScheduledContact) && !scheduledToday;
+    if (tab === 'renovacion') return isRenovation && !isBirthday && !scheduledToday;
+    if (tab === 'pendientes') return !isRenovation && !isBirthday && !scheduledToday && (customer.state === 'Pendiente' || customer.state === 'No respondió');
     if (tab === 'postventa') return customer.category === 'Postventa' || customer.category === 'Ambos';
-    return true;
+    return true; // 'todos'
   };
 
   const counts = useMemo(() => ({
@@ -125,7 +147,16 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
         <div className="screen-header__title">
           <span className="screen-header__icon"><CalendarDays /></span>
           <div>
-            <h1>Agenda diaria</h1>
+            <div className="flex items-center gap-2.5">
+              <h1>Agenda diaria</h1>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-bold">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Sincronizado
+              </span>
+            </div>
             <p>{new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           </div>
         </div>

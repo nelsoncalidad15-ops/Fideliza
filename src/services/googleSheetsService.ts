@@ -83,40 +83,78 @@ export async function fetchCustomersFromSheet(
 
     const json = await response.json();
     if (json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
-      const mappedCustomers: Customer[] = json.data.map((row: any, index: number) => ({
-        id: String(row.id || `sheet_${index + 1}`),
-        fullName: String(row.fullName || row.nombre || 'Sin nombre'),
-        firstName: row.firstName || (row.fullName ? row.fullName.split(' ')[0] : ''),
-        lastName: row.lastName || '',
-        docNumber: String(row.docNumber || row.dni || row.cuit || ''),
-        cuit: row.cuit ? String(row.cuit) : undefined,
-        phone: String(row.phone || row.telefono || ''),
-        contactPhone: row.contactPhone ? String(row.contactPhone) : undefined,
-        email: String(row.email || row.correo || ''),
-        address: String(row.address || row.direccion || 'Jujuy'),
-        city: String(row.city || row.ciudad || 'San Salvador de Jujuy'),
-        zipCode: String(row.zipCode || row.cp || '4600'),
-        branch: (row.branch || row.sucursal || 'San Salvador de Jujuy') as any,
-        vehicleModel: String(row.vehicleModel || row.modelo || 'Volkswagen 0km'),
-        brand: 'Volkswagen',
-        modelFamily: (row.modelFamily || row.familia || 'Taos') as any,
-        chassisNumber: String(row.chassisNumber || row.chasis || ''),
-        licensePlate: String(row.licensePlate || row.patente || row.dominio || ''),
-        deliveryDate: String(row.deliveryDate || row.fechaEntrega || ''),
-        registrationDate: String(row.registrationDate || row.fechaPatentamiento || row.deliveryDate || ''),
-        birthDate: row.birthDate || row.fechaNacimiento || undefined,
-        advisor: String(row.advisor || row.asesor || 'Asesor Autosol'),
-        originalAdvisor: row.originalAdvisor || row.vendedorOriginal || undefined,
-        state: (row.state || row.estado || 'Pendiente') as any,
-        contactReason: (row.contactReason || row.motivo || 'Renovación preferencial') as any,
-        lastContactDate: row.lastContactDate || row.ultimoContacto || undefined,
-        nextScheduledContact: row.nextScheduledContact || row.proximoContacto || undefined,
-        priority: (row.priority || row.prioridad || 'Media') as any,
-        category: (row.category || row.categoria || 'Ventas') as any,
-        tags: Array.isArray(row.tags) ? row.tags : (row.tags ? String(row.tags).split(',').map((t: string) => t.trim()) : ['Google Sheet']),
-        notes: row.notes || row.observaciones || undefined,
-        history: Array.isArray(row.history) ? row.history : [],
-      }));
+      const mappedCustomers: Customer[] = json.data.map((row: any, index: number) => {
+        const regDateStr = String(row.registrationDate || row.fechaPatentamiento || row.deliveryDate || '');
+        
+        // Inferencia inteligente de motivo y estado según la antigüedad del vehículo
+        let inferredReason = row.contactReason || row.motivo;
+        let inferredState = row.state || row.estado;
+
+        if (!inferredReason || inferredReason === 'Renovación preferencial' || inferredReason === 'Pendiente') {
+          const yearMatch = regDateStr.match(/\b(201\d|202\d)\b/);
+          if (yearMatch) {
+            const regYear = parseInt(yearMatch[1], 10);
+            const currentYear = new Date().getFullYear();
+            const diffYears = currentYear - regYear;
+
+            if (diffYears >= 2) {
+              inferredReason = `Renovación ciclo ${diffYears} años`;
+              if (!inferredState || inferredState === 'Pendiente') {
+                inferredState = 'Potencial renovación';
+              }
+            } else if (diffYears === 1) {
+              inferredReason = 'Oportunidad Renovación 12 meses';
+              if (!inferredState || inferredState === 'Pendiente') {
+                inferredState = 'Potencial renovación';
+              }
+            } else {
+              // Año actual (2026): 0km reciente
+              inferredReason = 'Seguimiento entrega 0km';
+              if (!inferredState) {
+                inferredState = 'Pendiente';
+              }
+            }
+          } else {
+            inferredReason = 'Seguimiento comercial';
+            if (!inferredState) inferredState = 'Pendiente';
+          }
+        }
+
+        return {
+          id: String(row.id || `sheet_${index + 1}`),
+          fullName: String(row.fullName || row.nombre || 'Sin nombre'),
+          firstName: row.firstName || (row.fullName ? row.fullName.split(' ')[0] : ''),
+          lastName: row.lastName || '',
+          docNumber: String(row.docNumber || row.dni || row.cuit || ''),
+          cuit: row.cuit ? String(row.cuit) : undefined,
+          phone: String(row.phone || row.telefono || ''),
+          contactPhone: row.contactPhone ? String(row.contactPhone) : undefined,
+          email: String(row.email || row.correo || ''),
+          address: String(row.address || row.direccion || 'Jujuy'),
+          city: String(row.city || row.ciudad || 'San Salvador de Jujuy'),
+          zipCode: String(row.zipCode || row.cp || '4600'),
+          branch: (row.branch || row.sucursal || 'San Salvador de Jujuy') as any,
+          vehicleModel: String(row.vehicleModel || row.modelo || 'Volkswagen 0km'),
+          brand: 'Volkswagen',
+          modelFamily: (row.modelFamily || row.familia || 'Taos') as any,
+          chassisNumber: String(row.chassisNumber || row.chasis || ''),
+          licensePlate: String(row.licensePlate || row.patente || row.dominio || ''),
+          deliveryDate: String(row.deliveryDate || row.fechaEntrega || ''),
+          registrationDate: regDateStr,
+          birthDate: row.birthDate || row.fechaNacimiento || undefined,
+          advisor: String(row.advisor || row.asesor || 'Asesor Autosol'),
+          originalAdvisor: row.originalAdvisor || row.vendedorOriginal || undefined,
+          state: (inferredState || 'Pendiente') as any,
+          contactReason: (inferredReason || 'Seguimiento comercial') as any,
+          lastContactDate: row.lastContactDate || row.ultimoContacto || undefined,
+          nextScheduledContact: row.nextScheduledContact || row.proximoContacto || undefined,
+          priority: (row.priority || row.prioridad || 'Media') as any,
+          category: (row.category || row.categoria || 'Ventas') as any,
+          tags: Array.isArray(row.tags) ? row.tags : (row.tags ? String(row.tags).split(',').map((t: string) => t.trim()) : ['Google Sheet']),
+          notes: row.notes || row.observaciones || undefined,
+          history: Array.isArray(row.history) ? row.history : [],
+        };
+      });
 
       // Capa de seguridad adicional del lado del cliente:
       if (user && user.role === 'asesor') {
